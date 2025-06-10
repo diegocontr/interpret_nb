@@ -33,6 +33,7 @@
 #include "PseudoHuberRegressionObjective.hpp"
 #include "LogLossBinaryObjective.hpp"
 #include "LogLossMulticlassObjective.hpp"
+#include "NegativeBinomialObjective.hpp"
 
 // Add new *Objective type registrations to this list:
 template<typename TFloat> static const std::vector<std::shared_ptr<const Registration>> RegisterObjectives() {
@@ -50,5 +51,7 @@ template<typename TFloat> static const std::vector<std::shared_ptr<const Registr
                "pseudo_huber", FloatParam("delta", 1.0)),
          Register<TFloat, LogLossBinaryObjective, AccelerationFlags_ALL>("log_loss"),
          Register<TFloat, LogLossMulticlassObjective, AccelerationFlags_ALL>("log_loss"),
+         Register<TFloat, NegativeBinomialObjective, AccelerationFlags_ALL>(
+               "negative_binomial", FloatParam("alpha", 1.0)),
    };
 }
