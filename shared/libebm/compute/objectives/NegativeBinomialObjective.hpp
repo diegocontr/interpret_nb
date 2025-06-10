@@ -18,6 +18,7 @@ template<typename TFloat> struct NegativeBinomialObjective : RegressionObjective
 
    // member variables should be of type TFloat
    TFloat m_alpha; // MODIFIED to store alpha
+   TFloat inv_alpha;
 
    // constexpr values should be static and type double
    static constexpr double Two = 2.0;
@@ -35,6 +36,7 @@ template<typename TFloat> struct NegativeBinomialObjective : RegressionObjective
       }
 
       m_alpha = alpha; // Store alpha
+      inv_alpha = 1.0 / m_alpha; // Calculate inverse alpha
    }
 
    inline bool CheckRegressionTarget(const double target) const noexcept {
@@ -82,31 +84,26 @@ template<typename TFloat> struct NegativeBinomialObjective : RegressionObjective
    GPU_DEVICE inline TFloat CalcMetric(const TFloat& score, const TFloat& target) const noexcept {
       // Current calculation is for MSE (identity link), not using m_alpha or Link_log.
       // This is a placeholder as per user request.
-      const TFloat prediction = score; 
-      const TFloat error = prediction - target;
-      return error * error;
+      const TFloat prediction = Exp(score); 
+      const TFloat part1 = target + m_alpha * prediction;
+      const TFloat part2 = Log( part1 );
+      // const TFloat error = prediction - target;
+      // const TFloat error = ( target+ 1/ m_alpha ) * Log( 1 + m_alpha *prediction) - target * Log(prediction);
+       const TFloat error = ( target + inv_alpha  ) * part2   - target * Log(prediction);
+      return error;
    }
 
    GPU_DEVICE inline TFloat CalcGradient(const TFloat& score, const TFloat& target) const noexcept {
-      // Current calculation is for MSE (identity link), not using m_alpha or Link_log.
-      // This is a placeholder as per user request.
-      const TFloat prediction = score; 
-      const TFloat error = prediction - target;
-      // Alternatively, the 2.0 factor could be moved to GradientConstant()
-      const TFloat gradient = Two * error;
+      const TFloat prediction = Exp(score); // log link function
+      const TFloat gradient = prediction - target;
       return gradient;
    }
 
-   // If the loss function doesn't have a second derivative, then delete the CalcGradientHessian function.
    GPU_DEVICE inline GradientHessian<TFloat> CalcGradientHessian(
          const TFloat& score, const TFloat& target) const noexcept {
-      // Current calculation is for MSE (identity link), not using m_alpha or Link_log.
-      // This is a placeholder as per user request.
-      const TFloat prediction = score; 
-      const TFloat error = prediction - target;
-      // Alternatively, the 2.0 factors could be moved to GradientConstant() and HessianConstant()
-      const TFloat gradient = Two * error;
-      const TFloat hessian = Two;
+      const TFloat prediction = Exp(score); // log link function
+      const TFloat gradient = prediction - target;
+      const TFloat hessian = prediction + m_alpha * prediction * prediction; // hessian = prediction + alpha * prediction^2
       return MakeGradientHessian(gradient, hessian);
    }
 };
